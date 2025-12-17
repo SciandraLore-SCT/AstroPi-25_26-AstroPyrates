@@ -1,1 +1,1 @@
-# AstroPi-2526-AstroPyrates
+# AstroPi-25_26-AstroPyrates
