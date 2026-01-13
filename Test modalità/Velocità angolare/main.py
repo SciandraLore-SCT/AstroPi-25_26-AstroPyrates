@@ -135,7 +135,6 @@ class ISSSpeedCalculator:
     
     
     def esegui(self):
-        """Funzione principale - esegue il programma"""
         
         # Tempo di esecuzione
         tempo_inizio = datetime.now()
