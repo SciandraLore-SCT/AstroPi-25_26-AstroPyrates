@@ -1,0 +1,26 @@
+BASI DI FISICA CHE OCCORONO :
+
+    Altezza della iss e molto vicina alla terra,si misura dalla superficie terrestre ma si concentra con un punto al centro 
+    r il raggio dell'orbita si misura quindi dal centro 
+    per stare in orbita deve avere una certa velocità (contando un orbita circolare )ogni orbita ha una sua sola e unica velocità
+    
+    Fg forza di gravità 
+    M massa terra 
+    m massa iss
+    r raggio orbita 
+
+    Fg=GmM/r^2 
+
+    Su un orbita circolare ce una forza centrifuga (perchè la iss è in movimento)
+
+    v velocità
+    forza centrifuga Fc = v^2/r*m 
+
+    Fg=Fc ----> GM/r = v^2 
+    la velocità non dipende dalla massa per restare in orbita 
+
+    quindi la velocità :
+
+    v=sqrt(GM/r)
+
+    mentre il raggio : r=Rt+h
