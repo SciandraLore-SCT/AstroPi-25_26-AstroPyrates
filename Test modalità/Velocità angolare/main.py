@@ -270,11 +270,6 @@ class ISSSpeedCalculator:
         else:
             self.scrivi_risultati("\nNessun dato valido raccolto")
 
-
-# ============================================================================
-#   MAIN
-# ============================================================================
-
 def main():
     """Punto di ingresso del programma"""
     try:
