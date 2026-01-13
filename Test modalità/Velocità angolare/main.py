@@ -105,13 +105,11 @@ class ISSSpeedCalculator:
             return nome_foto, timestamp
     
     
-    def scrivi_risultati(self, messaggio, console=True):
+    def scrivi_risultati(self, messaggio):
         """Scrive i risultati sia su file che su console"""
         with open(self.file_risultati, 'a') as f:
             f.write(messaggio + '\n')
         
-        if console:
-            print(messaggio)
     
     
     def valida_velocita(self, velocita, metodo):
