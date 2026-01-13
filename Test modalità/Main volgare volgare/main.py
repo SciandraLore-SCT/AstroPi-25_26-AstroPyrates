@@ -243,8 +243,8 @@ class ISSSpeedCalculator:
         if velocita is None:
             return False
         
-        min_vel = 6.0  # km/s
-        max_vel = 9.0  # km/s
+        min_vel = 7.0  # km/s
+        max_vel = 8.0  # km/s
         
         if min_vel <= velocita <= max_vel:
             return True
