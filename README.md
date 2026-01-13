@@ -15,3 +15,13 @@ AstroPyrates team project for the Astro Pi 2025/2026 competition
 - Raspberry Pi
 - Sense HAT / Camera HQ
 - Python 3
+- picamzero
+- sense_hat
+- pathlib
+- datetime
+- time
+- math
+- cv2
+- numpy
+- exif
+
