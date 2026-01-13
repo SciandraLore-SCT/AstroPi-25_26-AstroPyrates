@@ -54,7 +54,7 @@ class ISSSpeedCalculator:
             with open(percorso_foto, 'rb') as f:
                 img = ExifImage(f)
             
-            if img.has_exif and hasattr(img, 'gps_latitude'):
+            if img.has_exif and hasattr(img, 'gps_latitude'):#da vedere
                 lat = self.converti_coordinate_decimali(
                     img.gps_latitude,
                     img.gps_latitude_ref
@@ -72,7 +72,7 @@ class ISSSpeedCalculator:
             return None, None
     
     
-    def calcola_distanza_haversine(self, lat1, lon1, lat2, lon2):
+    def calcola_distanza_haversine(self, lat1, lon1, lat2, lon2):#da vedere
 
         lat1_rad = math.radians(lat1)
         lon1_rad = math.radians(lon1)
@@ -91,7 +91,7 @@ class ISSSpeedCalculator:
         return distanza_km
     
     
-    def calcola_velocita_gps(self, foto1, foto2, tempo_sec):
+    def calcola_velocita_gps(self, foto1, foto2, tempo_sec):#da vedere
 
         lat1, lon1 = self.estrai_gps_da_foto(foto1)
         lat2, lon2 = self.estrai_gps_da_foto(foto2)
@@ -106,7 +106,7 @@ class ISSSpeedCalculator:
     
     
     
-    def rileva_spostamento_foto(self, foto1, foto2):
+    def rileva_spostamento_foto(self, foto1, foto2):#da vedere
         try:
             img1 = cv2.imread(str(foto1), cv2.IMREAD_GRAYSCALE)
             img2 = cv2.imread(str(foto2), cv2.IMREAD_GRAYSCALE)
@@ -180,7 +180,7 @@ class ISSSpeedCalculator:
         return velocita_km_s
     
     
-    def calcola_velocita_angolare(self):
+    def calcola_velocita_angolare(self):#no cambiare giusto
         try:
             gyro = self.sense.get_gyroscope_raw()
             tempo_corrente = datetime.now()
@@ -232,6 +232,11 @@ class ISSSpeedCalculator:
         
         if console:
             print(messaggio)
+
+    def scrivi_risultatiFinale(self,messaggio):#messaggio finale finale 
+        with open(self.file_risultati,'w')as f:
+            f.write(messaggio)
+
     
     
     def valida_velocita(self, velocita, metodo):
@@ -256,11 +261,6 @@ class ISSSpeedCalculator:
         tempo_inizio = datetime.now()
         tempo_fine = tempo_inizio + timedelta(minutes=DURATA_MINUTI)
         
-        self.scrivi_risultati(f"Inizio: {tempo_inizio.strftime('%Y-%m-%d %H:%M:%S')}")
-        self.scrivi_risultati(f"Fine prevista: {tempo_fine.strftime('%Y-%m-%d %H:%M:%S')}")
-        self.scrivi_risultati(f"Durata: {DURATA_MINUTI} minuti")
-        self.scrivi_risultati(f"Intervallo foto: {INTERVALLO_FOTO} secondi\n")
-        self.scrivi_risultati("-" * 80 + "\n")
         
         foto_numero = 0
         
@@ -268,7 +268,7 @@ class ISSSpeedCalculator:
             while datetime.now() < tempo_fine:
                 
                 foto_path, foto_tempo = self.scatta_foto(foto_numero)
-                self.scrivi_risultati(f"\n📸 Foto {foto_numero}: {foto_path.name}")
+                self.scrivi_risultati(f"\nFoto {foto_numero}: {foto_path.name}")
                 
                 self.foto_lista.append({
                     'path': foto_path,
