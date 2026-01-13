@@ -184,6 +184,7 @@ class ISSSpeedCalculator:
             self.scrivi_risultati(traceback.format_exc())
         
         finally:
+            # ===== ANALISI FINALE =====
             self.analizza_risultati()
             
             self.scrivi_risultati("\n" + "=" * 80)
@@ -270,6 +271,9 @@ class ISSSpeedCalculator:
             self.scrivi_risultati("\nNessun dato valido raccolto")
 
 
+# ============================================================================
+#   MAIN
+# ============================================================================
 
 def main():
     """Punto di ingresso del programma"""
