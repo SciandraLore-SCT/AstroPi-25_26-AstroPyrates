@@ -91,7 +91,7 @@ class ISSSpeedCalculator:
         return distanza_km
     
     
-    def calcola_velocita_gps(self, foto1, foto2, tempo_sec):#da vedere
+    def calcola_velocita_gps(self, foto1, foto2, tempo_sec):#da vedere => collegato alla costante di haversine
 
         lat1, lon1 = self.estrai_gps_da_foto(foto1)
         lat2, lon2 = self.estrai_gps_da_foto(foto2)
@@ -393,13 +393,13 @@ class ISSSpeedCalculator:
             
             # Valutazione
             if errore_finale_perc < 1:
-                self.scrivi_risultati("\nRISULTATO: ECCELLENTE! (errore < 1%)")
+                self.scrivi_risultati("\nerrore < 1%")
             elif errore_finale_perc < 3:
-                self.scrivi_risultati("\nRISULTATO: MOLTO BUONO! (errore < 3%)")
+                self.scrivi_risultati("\nerrore < 3%")
             elif errore_finale_perc < 5:
-                self.scrivi_risultati("\nRISULTATO: BUONO! (errore < 5%)")
+                self.scrivi_risultati("\nerrore < 5%")
             else:
-                self.scrivi_risultati("\nRISULTATO: DA MIGLIORARE (errore > 5%)")
+                self.scrivi_risultati("\nRerrore > 5%")
         
         else:
             self.scrivi_risultati("\nNessun dato valido raccolto")
