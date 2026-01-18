@@ -11,6 +11,13 @@ AstroPyrates team project for the Astro Pi 2025/2026 competition
  
 - ITIS Mario Del'Pozzo
 
+## Features
+
+Calculate the speed of the ISS using:
+
+- Angular motion using a gyroscope
+- Relative speed using GPS
+- Speed using ORBs relative to images
 ## Library
 - Raspberry Pi
 - Sense HAT / Camera HQ
@@ -24,4 +31,6 @@ AstroPyrates team project for the Astro Pi 2025/2026 competition
 - cv2
 - numpy
 - exif
+
+
 
