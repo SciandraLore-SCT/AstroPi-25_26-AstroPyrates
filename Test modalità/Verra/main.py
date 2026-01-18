@@ -18,8 +18,8 @@ class ISSSpeedCalculator:
         i = 5
         for cont in range(i):
             img_file = open(f"image{i}.jpg","rb")#lettura in modalità binaria("rb")
-            lat = img.gps_latitude
-            lon = img.gps_longitude
+            lat = img_file.gps_latitude
+            lon = img_file.gps_longitude
         return lat, lon
 
     def scrivi_risultatiFinale(self,messaggio):#messaggio finale finale 
@@ -33,7 +33,7 @@ class ISSSpeedCalculator:
         self.scrivi_risultatiFinale(f"latitude = {latitude}       longitude = {longitude}")
          
 def main():
-    calculator = ISSSpeedCalculator()
+    calculator = ISS_ SpeedCalculator()
     calculator.esegui()
    
 
