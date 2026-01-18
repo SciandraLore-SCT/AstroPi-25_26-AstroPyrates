@@ -49,7 +49,7 @@ class ISSSpeedCalculator:
         return gradi_dec
     
     
-    def estrai_gps_da_foto(self, percorso_foto):
+    def estrai_gps_da_foto(self, percorso_foto):#non si può usare il gps con exif 
         try:
             with open(percorso_foto, 'rb') as f:
                 img = ExifImage(f)
