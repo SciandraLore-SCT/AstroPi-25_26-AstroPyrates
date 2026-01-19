@@ -89,6 +89,11 @@ class ISSSpeedCalculator:
 
             velocita_list.append(velocita)
 
+            self.scrivi_risultatiFinale(
+                f"Immagini {k}-{k+1}: "
+                f"{velocita:.2f} m/s ({velocita*3.6:.0f} km/h)"
+            )
+
         if len(velocita_list) > 0:
             velocita_media = np.mean(velocita_list)
 
