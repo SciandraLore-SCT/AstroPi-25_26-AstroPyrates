@@ -20,7 +20,6 @@ INTERVALLO_FOTO = 5
 ALTEZZA_ISS_KM = 408
 # Raggio della Terra in km
 RAGGIO_TERRA_KM = 6371
-
 FOV_CAMERA_GRADI = 62
 
 class ISSSpeedCalculator:    
@@ -72,6 +71,11 @@ class ISSSpeedCalculator:
             return None, None
     
     
+
+    def kalman_filter():
+        pass
+    
+
     def calcola_distanza_haversine(self, lat1, lon1, lat2, lon2):#da vedere
 
         lat1_rad = math.radians(lat1)
