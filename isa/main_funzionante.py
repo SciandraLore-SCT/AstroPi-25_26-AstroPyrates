@@ -3,7 +3,6 @@ from time import sleep
 import cv2
 import numpy as np
 import math
-from datetime import datetime, timedelta
 
 
 class ISSSpeedCalculator:
@@ -12,11 +11,7 @@ class ISSSpeedCalculator:
         self.file_risultati = "risultati.txt"
         self.camera = Camera()
         self.TIME_INTERVAL = 10          # secondi
-        self.CORRECTION_FACTOR = 1.8  # correzione geometrica dell'angolo
-        self.DURATA_MINUTI = 10
-        self.start_time = datetime.now()
-        self.SPEED_ISS=7665
-   
+        self.CORRECTION_FACTOR = 1.8     # correzione geometrica dell'angolo
 
     def take_picture(self, n):
         for cont in range(n):
@@ -71,51 +66,38 @@ class ISSSpeedCalculator:
             f.write(messaggio + "\n")
 
     def esegui(self):
-        while datetime.now() < self.start_time + timedelta(minutes=1):
+        n = 10
+        self.take_picture(n)
 
-            n = 400/self.TIME_INTERVAL #600 sono i secondi in 10 minuti 
-            n=int(n)
-            self.take_picture(n)
+        images = [f"image{i}.jpg" for i in range(n)]
+        velocita_list = []
 
-            images = [f"image{i}.jpg" for i in range(n)]
-            velocita_list = []
+        for k in range(n - 1):
+            pixel_shift = self.distanza_tra_immagini(
+                images[k], images[k + 1]
+            )
 
-            for k in range(n - 1):
-                pixel_shift = self.distanza_tra_immagini(
-                    images[k], images[k + 1]
-                )
+            distanza_metri = self.pixel_to_meters(
+                pixel_shift, image_width=4056
+            )
 
-                distanza_metri = self.pixel_to_meters(
-                    pixel_shift, image_width=4056
-                )
+            velocita = distanza_metri / self.TIME_INTERVAL
 
-                velocita = distanza_metri / self.TIME_INTERVAL
+            # filtro fisico
+            if velocita < 500 or velocita > 10000:
+                continue
 
-                # filtro fisico
-                velocita = distanza_metri / self.TIME_INTERVAL
+            velocita_list.append(velocita)
 
-                # filtro fisico largo
-                if velocita < 500 or velocita > 10000:
-                    continue
+        if len(velocita_list) > 0:
+            velocita_media = np.mean(velocita_list)
 
-                # filtro ISS realistico
-                if 6000 <= velocita <= 8000:
-                    velocita_list.append(velocita)
-
-                
-
-            if len(velocita_list) > 0:
-                velocita_media = np.mean(velocita_list)
-                errore = abs(velocita_media - self.SPEED_ISS) / self.SPEED_ISS * 100
-
-
-                self.scrivi_risultatiFinale(
-                    f"\nVelocità media stimata ISS: "
-                    f"{velocita_media:.2f} m/s "
-                    f"({velocita_media*3.6:.0f} km/h, "
-                    f"{velocita_media/1000:.2f} km/s)"
-                    f"errore : {errore:.2f} %"
-                )
+            self.scrivi_risultatiFinale(
+                f"\nVelocità media stimata ISS: "
+                f"{velocita_media:.2f} m/s "
+                f"({velocita_media*3.6:.0f} km/h, "
+                f"{velocita_media/1000:.2f} km/s)"
+            )
 
 
 
