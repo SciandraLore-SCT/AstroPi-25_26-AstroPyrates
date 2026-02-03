@@ -71,7 +71,6 @@ class ISSSpeedCalculator:
             f.write(messaggio + "\n")
 
     def esegui(self):
-        while datetime.now() < self.start_time + timedelta(minutes=1):
 
             n = 400/self.TIME_INTERVAL #600 sono i secondi in 10 minuti 
             n=int(n)
@@ -89,40 +88,29 @@ class ISSSpeedCalculator:
                     pixel_shift, image_width=4056
                 )
 
-                velocita = distanza_metri / self.TIME_INTERVAL
+               
 
                 # filtro fisico
-                velocita = distanza_metri / self.TIME_INTERVAL
-
-                # filtro fisico largo
-                if velocita < 500 or velocita > 10000:
-                    continue
-
-                # filtro ISS realistico
-                if 6000 <= velocita <= 8000:
-                    velocita_list.append(velocita)
-
+                 velocita = distanza_metri / self.TIME_INTERVAL
                 
 
-            if len(velocita_list) > 0:
-                velocita_media = np.mean(velocita_list)
-                errore = abs(velocita_media - self.SPEED_ISS) / self.SPEED_ISS * 100
+               
+                
 
-
-                self.scrivi_risultatiFinale(
-                    f"\nVelocità media stimata ISS: "
-                    f"{velocita_media:.2f} m/s "
-                    f"({velocita_media*3.6:.0f} km/h, "
-                    f"{velocita_media/1000:.2f} km/s)"
-                    f"errore : {errore:.2f} %"
-                )
+           
 
 
 
 def main():
     calculator = ISSSpeedCalculator()
     calculator.esegui()
-
+    calculator.scrivi_risultatiFinale(
+                    f"\nVelocità media stimata ISS: "
+                    f"{velocita_media:.2f} m/s "
+                    f"({velocita_media*3.6:.0f} km/h, "
+                    f"{velocita_media/1000:.2f} km/s)"
+                    f"errore : {errore:.2f} %"
+                )
 
 if __name__ == "__main__":
     main()
