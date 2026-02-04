@@ -8,18 +8,7 @@ def kalman_filter_fusion(measurement_photo, measurement_gyro,
                         process_variance=0.005, 
                         measurement_variance_photo=0.5,
                         measurement_variance_gyro=0.3):
-    """
-    Docstring for kalman_filter_fusion
-    
-    :param measurement_photo: Velocity from photo pixel calc
-    :param measurement_gyro: Velocity from angular calc
-    :param state_estimate: Current Velocity estimate - previous
-    :param state_variance: Current estimate Error
-    :param process_variance: The Rumor of the sensor
-    :param measurement_variance_photo: Description
-    :param measurement_variance_gyro: Description
-    
-    
+
     
     predicted_state = state_estimate 
     predicted_variance = state_variance + process_variance  
