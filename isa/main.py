@@ -1,28 +1,63 @@
 from picamzero import Camera
+from sense_hat import SenseHat
 from time import sleep
 import cv2
 import numpy as np
 import math
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 class ISSSpeedCalculator:
 
     def __init__(self):
-        self.file_risultati = "risultati.txt"
         self.camera = Camera()
-        self.TIME_INTERVAL = 10          # secondi
-        self.CORRECTION_FACTOR = 1.8  # correzione geometrica dell'angolo
-        self.DURATA_MINUTI = 10
-        self.start_time = datetime.now()
-        self.SPEED_ISS=7665
-   
+        self.sense = SenseHat()
 
-    def take_picture(self, n):
-        for cont in range(n):
-            self.camera.take_photo(f"image{cont}.jpg")
-            sleep(self.TIME_INTERVAL)
+        self.TIME_INTERVAL = 10
+        self.DURATA_SEC = 400
+        self.file_risultati = "risultati.txt"
 
+        self.SPEED_ISS = 7665  # m/s
+        self.MAX_OMEGA = 0.01
+
+        self.RAGGIO_TERRA = 6371000       # m
+        self.ALTEZZA_ISS = 408000         # m
+        self.RAGGIO_ORBITA = self.RAGGIO_TERRA + self.ALTEZZA_ISS
+
+    # -------------------------------
+    # GIROSCOPIO
+    # -------------------------------
+    def velocita_da_giroscopio(self):
+        gyro = self.sense.get_gyroscope_raw()
+
+        omega = math.sqrt(
+            gyro['x']**2 +
+            gyro['y']**2 +
+            gyro['z']**2
+        )
+
+        # v = ω * r
+        velocita = omega * self.RAGGIO_ORBITA
+        return velocita
+
+    def iss_stabile(self):
+        gyro = self.sense.get_gyroscope_raw()
+        omega = math.sqrt(
+            gyro['x']**2 +
+            gyro['y']**2 +
+            gyro['z']**2
+        )
+        return omega < self.MAX_OMEGA
+
+    # -------------------------------
+    # FOTO
+    # -------------------------------
+    def take_picture(self, name):
+        self.camera.take_photo(name)
+
+    # -------------------------------
+    # ORB + RANSAC
+    # -------------------------------
     def distanza_tra_immagini(self, img1_path, img2_path):
         img1 = cv2.imread(img1_path, 0)
         img2 = cv2.imread(img2_path, 0)
@@ -32,95 +67,96 @@ class ISSSpeedCalculator:
         kp2, des2 = orb.detectAndCompute(img2, None)
 
         if des1 is None or des2 is None:
-            return 0
+            return None
 
         bf = cv2.BFMatcher(cv2.NORM_HAMMING)
         matches = bf.match(des1, des2)
 
         if len(matches) < 10:
-            return 0
+            return None
 
         pts1 = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
         pts2 = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
 
-        # RANSAC: elimina i match sbagliati
-        M, mask = cv2.estimateAffinePartial2D(
-            pts1, pts2, method=cv2.RANSAC#rimuove outlier
-            #Un outlier è un dato anomalo, cioè un valore che non segue il comportamento generale degli altri dati.
-        )
+        M, _ = cv2.estimateAffinePartial2D(pts1, pts2, method=cv2.RANSAC)
 
         if M is None:
-            return 0
+            return None
 
         dx = M[0, 2]
         dy = M[1, 2]
 
         return np.hypot(dx, dy)
 
+    # -------------------------------
+    # PIXEL → METRI
+    # -------------------------------
     def pixel_to_meters(self, pixel_distance, image_width):
         FOV = math.radians(62.2)
-        ISS_HEIGHT = 408000  # metri
+        ISS_HEIGHT = 408000
 
-        width_earth = 2 * ISS_HEIGHT * math.tan(FOV / 2)
-        meters_per_pixel = width_earth / image_width
+        width_ground = 2 * ISS_HEIGHT * math.tan(FOV / 2)
+        meters_per_pixel = width_ground / image_width
 
         return pixel_distance * meters_per_pixel
 
-    def scrivi_risultatiFinale(self, messaggio):
-        with open(self.file_risultati, 'a') as f:
-            f.write(messaggio + "\n")
-
+    # -------------------------------
+    # MAIN
+    # -------------------------------
     def esegui(self):
 
-            n = 400/self.TIME_INTERVAL #600 sono i secondi in 10 minuti 
-            n=int(n)
-            self.take_picture(n)
+        n = int(self.DURATA_SEC / self.TIME_INTERVAL)
 
-            images = [f"image{i}.jpg" for i in range(n)]
-            velocita_list = []
+        velocita_pixel = []
+        velocita_gyro = []
 
-            for k in range(n - 1):
-                pixel_shift = self.distanza_tra_immagini(
-                    images[k], images[k + 1]
+        prev_img = None
+
+        for i in range(n):
+
+            if not self.iss_stabile():
+                sleep(self.TIME_INTERVAL)
+                continue
+
+            img_name = f"image{i}.jpg"
+            self.take_picture(img_name)
+
+            v_g = self.velocita_da_giroscopio()
+            if 500 < v_g < 10000:
+                velocita_gyro.append(v_g)
+
+            if prev_img is not None:
+                pixel_shift = self.distanza_tra_immagini(prev_img, img_name)
+
+                if pixel_shift is not None:
+                    distanza = self.pixel_to_meters(pixel_shift, 4056)
+                    v_p = distanza / self.TIME_INTERVAL
+
+                    if 500 < v_p < 10000:
+                        velocita_pixel.append(v_p)
+
+            prev_img = img_name
+            sleep(self.TIME_INTERVAL)
+
+        if velocita_pixel and velocita_gyro:
+            v_pixel_media = np.mean(velocita_pixel)
+            v_gyro_media = np.mean(velocita_gyro)
+
+            v_finale = (v_pixel_media + v_gyro_media) / 2
+            errore = abs(v_finale - self.SPEED_ISS) / self.SPEED_ISS * 100
+
+            with open(self.file_risultati, "a") as f:
+                f.write(
+                    f"\nVelocità pixel: {v_pixel_media:.2f} m/s"
+                    f"\nVelocità giroscopio: {v_gyro_media:.2f} m/s"
+                    f"\nVelocità media finale: {v_finale:.2f} m/s"
+                    f"\nErrore: {errore:.2f}%\n"
                 )
-
-                distanza_metri = self.pixel_to_meters(
-                    pixel_shift, image_width=4056
-                )
-
-               
-
-                # filtro fisico
-                 velocita = distanza_metri / self.TIME_INTERVAL
-
-                # filtro fisico largo
-                if velocita < 500 or velocita > 10000:
-                    continue
-
-                # filtro ISS realistico
-                if 6000 <= velocita <= 8000:
-                    velocita_list.append(velocita)
-
-                
-
-            if len(velocita_list) > 0:
-                velocita_media = np.mean(velocita_list)
-                errore = abs(velocita_media - self.SPEED_ISS) / self.SPEED_ISS * 100
-
-
-                self.scrivi_risultatiFinale(
-                    f"\nVelocità media stimata ISS: "
-                    f"{velocita_media:.2f} m/s "
-                    f"({velocita_media*3.6:.0f} km/h, "
-                    f"{velocita_media/1000:.2f} km/s)"
-                    f"errore : {errore:.2f} %"
-                )
-
 
 
 def main():
-    calculator = ISSSpeedCalculator()
-    calculator.esegui()
+    calc = ISSSpeedCalculator()
+    calc.esegui()
 
 
 if __name__ == "__main__":

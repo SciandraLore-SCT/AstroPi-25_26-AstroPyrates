@@ -5,8 +5,7 @@
 from picamzero import Camera
 from sense_hat import SenseHat
 from time import sleep
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 import cv2
 import numpy as np
 import math
@@ -15,10 +14,10 @@ import math
 
 TIME_INTERVAL = 5          # secondi
 DURATA_MINUTI = 10
-IMAGE_WIDTH = 4056         # risoluzione camera
+IMAGE_WIDTH = 4056
 FOV = math.radians(62.2)
 
-ISS_HEIGHT_M = 408000      # m
+ISS_HEIGHT_M = 408000
 R_TERRA_KM = 6371
 H_ISS_KM = 408
 
@@ -29,9 +28,9 @@ VELOCITA_REALE = 7.66      # km/s
 def kalman_filter_fusion(z_photo, z_gyro,
                          x_prev, P_prev,
                          Q=0.01,
-                         R_photo=0.4,
-                         R_gyro=1.2):
-    # --- Prediction ---
+                         R_photo=0.3,
+                         R_gyro=5.0):
+    # Prediction
     x_pred = x_prev
     P_pred = P_prev + Q
 
@@ -46,10 +45,10 @@ def kalman_filter_fusion(z_photo, z_gyro,
         measurements.append(z_gyro)
         variances.append(R_gyro)
 
-    if len(measurements) == 0:
+    if not measurements:
         return x_pred, P_pred
 
-    # --- Update ---
+    # Update
     if len(measurements) == 1:
         z = measurements[0]
         R = variances[0]
@@ -95,8 +94,11 @@ def distanza_tra_immagini(img1_path, img2_path):
     bf = cv2.BFMatcher(cv2.NORM_HAMMING)
     matches = bf.match(des1, des2)
 
-    if len(matches) < 10:
+    if len(matches) < 20:
         return None
+
+    # filtro sui migliori match
+    matches = sorted(matches, key=lambda x: x.distance)[:100]
 
     pts1 = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
     pts2 = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
@@ -129,7 +131,7 @@ def velocita_da_giroscopio(sense):
     )
 
     r = R_TERRA_KM + H_ISS_KM
-    return omega * r   # km/s (stima rumorosa)
+    return omega * r   # km/s (stima molto rumorosa)
 
 # ===================== MAIN =====================
 
@@ -163,6 +165,10 @@ def main():
                 dist_m = pixel_to_meters(pixel_shift)
                 z_photo = (dist_m / TIME_INTERVAL) / 1000  # km/s
 
+                # filtro fisico
+                if z_photo < 5 or z_photo > 9:
+                    z_photo = None
+
         z_gyro = velocita_da_giroscopio(sense)
 
         x_est, P_est = kalman_filter_fusion(
@@ -192,3 +198,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
