@@ -16,6 +16,8 @@ def kalman_filter_fusion(measurement_photo, measurement_gyro,
     measurements = []
     variances = []
     
+
+
     # Check which measurements are available
     if measurement_photo is not None:
         measurements.append(measurement_photo)
