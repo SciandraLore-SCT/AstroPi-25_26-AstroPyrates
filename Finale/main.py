@@ -189,8 +189,8 @@ def main():
     errore = abs(media - VELOCITA_REALE) / VELOCITA_REALE * 100
 
     print("\n================ RISULTATO FINALE ================")
-    print(f"Velocità stimata ISS: {media:.3f} km/s")
-    print(f"Velocità reale ISS : {VELOCITA_REALE:.2f} km/s")
+    print(f"Velocita stimata ISS: {media:.3f} km/s")
+    print(f"Velocita reale ISS : {VELOCITA_REALE:.2f} km/s")
     print(f"Errore percentuale : {errore:.2f}%")
     print("==================================================")
 
