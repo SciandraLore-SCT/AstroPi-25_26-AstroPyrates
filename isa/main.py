@@ -140,7 +140,7 @@ class ISSSpeedCalculator:
 
             with open(self.file_risultati, "a") as f:
                 f.write(
-                    f"{v_km:.2f} km/s\n"
+                    f"{v_km:.2f}"
                     
                 )
 
