@@ -136,13 +136,8 @@ class ISSSpeedCalculator:
         if velocita:
             v_media = np.mean(velocita)
             v_km=v_media/1000
-            errore = abs(v_media - self.SPEED_ISS_REALE) / self.SPEED_ISS_REALE * 100
-
-            with open(self.file_risultati, "a") as f:
-                f.write(
-                    f"{v_km:.2f}"
-                    
-                )
+            with open(self.file_risultati, "w") as f:
+                f.write(f"{v_km:.2f}")
 
 
 def main():
