@@ -19,7 +19,7 @@ class ISSSpeedCalculator:
         self.N = int(self.DURATA_SEC / self.TIME_INTERVAL)
 
         # File risultati
-        self.file_risultati = "risultati.txt"
+        self.file_risultati = "result.txt"
 
         # Costanti fisiche
         self.SPEED_ISS_REALE = 7665     # m/s
@@ -135,13 +135,13 @@ class ISSSpeedCalculator:
 
         if velocita:
             v_media = np.mean(velocita)
+            v_km=v_media/1000
             errore = abs(v_media - self.SPEED_ISS_REALE) / self.SPEED_ISS_REALE * 100
 
             with open(self.file_risultati, "a") as f:
                 f.write(
-                    f"\n--- {datetime.now()} ---\n"
-                    f"Velocita media ISS: {v_media:.2f} m/s\n"
-                    f"Errore percentuale: {errore:.2f}%\n"
+                    f"{v_km:.2f} km/s\n"
+                    
                 )
 
 
