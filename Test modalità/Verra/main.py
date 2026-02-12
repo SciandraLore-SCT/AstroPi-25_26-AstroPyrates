@@ -1,154 +1,146 @@
 from picamzero import Camera
+from sense_hat import SenseHat
 from time import sleep
 import cv2
 import numpy as np
 import math
-import sys
 from datetime import datetime
 
-ALTEZZA_ISS_KM = 408
-RAGGIO_TERRA_KM = 6371
 
-
-class ISS_SpeedCalculator:
+class ISSSpeedCalculator:
 
     def __init__(self):
-        self.file_risultati = "risultati.txt"
-        self.state_estimate = 0.0
-        self.state_variance = 1.0
-        self.process_variance = 0.005
-        self.measurement_variance_photo = 0.5
-        self.measurement_variance_gyro = 0.3
+        self.camera = Camera()
+        self.sense = SenseHat()
 
-    def take_picture(self):
-        cam = Camera()
-        name_files = []
-        for cont in range(10):
-            filename = f"image{cont}.jpg"
-            cam.take_photo(filename)
-            name_files.append(filename)
-            sleep(10)
-        return name_files
+        # Time parameters
+        self.TIME_INTERVAL = 10        # seconds
+        self.DURATION_SEC = 400
+        self.N = int(self.DURATION_SEC / self.TIME_INTERVAL)
 
-    def distances(self, name_img):
-        des_list = []
-        kp_list = []
-        image_list = []
+        # Results file
+        self.results_file = "result.txt"
 
-        for dati in name_img:
-            image = cv2.imread(dati, 0)
-            image_list.append(image)
+        # Physical constants
+        self.REAL_ISS_SPEED = 7665     # m/s
+        self.EARTH_RADIUS = 6371000    # meters
+        self.ISS_HEIGHT = 408000       # meters
 
-        orb = cv2.ORB_create(1000)
-        for image in image_list:
-            kp, des = orb.detectAndCompute(image, None)
-            kp_list.append(kp)
-            des_list.append(des)
+        # Camera (AstroPi)
+        self.FOV_X = math.radians(62.2)  # Horizontal FOV (Pi Camera)
 
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        distances_all_pairs = []
+        # Stability
+        self.MAX_OMEGA = 0.01           # rad/s
 
-        for i in range(len(des_list) - 1):
-            matches = bf.match(des_list[i], des_list[i + 1])
-            distances = []
 
-            for m in matches:
-                p1 = kp_list[i][m.queryIdx].pt
-                p2 = kp_list[i + 1][m.trainIdx].pt
-                d = np.linalg.norm(np.array(p1) - np.array(p2))
-                distances.append(d)
+    # -------------------------------
+    # GYROSCOPE (FILTER ONLY)
+    # -------------------------------
+    def iss_stable(self):
+        gyro = self.sense.get_gyroscope_raw()
+        omega = math.sqrt(
+            gyro['x']**2 +
+            gyro['y']**2 +
+            gyro['z']**2
+        )
+        return omega < self.MAX_OMEGA
 
-            if distances:
-                distances_all_pairs.append(np.mean(distances))
 
-        return np.mean(distances_all_pairs) if distances_all_pairs else None
+    # -------------------------------
+    # PHOTO
+    # -------------------------------
+    def take_picture(self, name):
+        self.camera.take_photo(name)
 
-    def kalman_filter_fusion(self, measurement_photo, measurement_gyro):
-        predicted_state = self.state_estimate
-        predicted_variance = self.state_variance + self.process_variance
 
-        measurements = []
-        variances = []
+    # -------------------------------
+    # ORB + RANSAC
+    # -------------------------------
+    def pixel_shift(self, img1_path, img2_path):
 
-        if measurement_photo is not None:
-            measurements.append(measurement_photo)
-            variances.append(self.measurement_variance_photo)
+        img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+        img2 = cv2.imread(img2_path, cv2.IMREAD_GRAYSCALE)
 
-        if measurement_gyro is not None:
-            measurements.append(measurement_gyro)
-            variances.append(self.measurement_variance_gyro)
+        if img1 is None or img2 is None:
+            return None, None
 
-        if not measurements:
-            self.state_estimate = predicted_state
-            self.state_variance = predicted_variance
-            return predicted_state
+        orb = cv2.ORB_create(3000)
+        kp1, des1 = orb.detectAndCompute(img1, None)
+        kp2, des2 = orb.detectAndCompute(img2, None)
 
-        if len(measurements) == 1:
-            z = measurements[0]
-            R = variances[0]
-            K = predicted_variance / (predicted_variance + R)
-            self.state_estimate = predicted_state + K * (z - predicted_state)
-            self.state_variance = (1 - K) * predicted_variance
-            return self.state_estimate
+        if des1 is None or des2 is None:
+            return None, None
 
-        z = np.array(measurements)
-        R = np.diag(variances)
-        H = np.ones((2, 1))
-        P = np.array([[predicted_variance]])
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING)
+        matches = bf.match(des1, des2)
 
-        y = z - (H @ np.array([[predicted_state]])).flatten()
-        S = H @ P @ H.T + R
-        K = (P @ H.T @ np.linalg.inv(S)).flatten()
+        if len(matches) < 10:
+            return None, None
 
-        self.state_estimate = predicted_state + K @ y
-        self.state_variance = predicted_variance - np.sum(K) * predicted_variance
+        pts1 = np.float32([kp1[m.queryIdx].pt for m in matches])
+        pts2 = np.float32([kp2[m.trainIdx].pt for m in matches])
 
-        return float(self.state_estimate)
+        # Average shift (robust)
+        shift = np.median(pts2 - pts1, axis=0)
+        pixel_distance = np.linalg.norm(shift)
 
+        h, w = img1.shape
+        return pixel_distance, w
+
+
+    # -------------------------------
+    # PIXEL TO METERS
+    # -------------------------------
     def pixel_to_meters(self, pixel_distance, image_width):
-        FOV = math.radians(62.2)
-        ISS_HEIGHT = 408000
-        width_earth = 2 * ISS_HEIGHT * math.tan(FOV / 2)
-        return pixel_distance * (width_earth / image_width)
 
-    def calcola_velocita_angolare(self):
-        try:
-            gyro = self.sense.get_gyroscope_raw()
-            omega = math.sqrt(gyro['x']**2 + gyro['y']**2 + gyro['z']**2)
-            raggio_orbita = RAGGIO_TERRA_KM + ALTEZZA_ISS_KM
-            return omega * raggio_orbita
-        except Exception as e:
-            print(f"Errore giroscopio: {e}")
-            return None
+        # Real ground width captured
+        ground_width = 2 * self.ISS_HEIGHT * math.tan(self.FOV_X / 2)
 
-    def write_final_result(self, messaggio):
-        with open(self.file_risultati, 'w') as f:
-            f.write(messaggio)
+        meters_per_pixel = ground_width / image_width
+        return pixel_distance * meters_per_pixel
 
-    def esegui(self):
-        images = self.take_picture()
-        pixel_shift = self.distances(images)
 
-        photo_velocity = None
-        if pixel_shift is not None:
-            meters = self.pixel_to_meters(pixel_shift, 4056)
-            photo_velocity = meters / 10.0 / 1000.0
+    # -------------------------------
+    # MAIN
+    # -------------------------------
+    def run(self):
 
-        gyro_velocity = self.calcola_velocita_angolare()
+        speeds = []
+        prev_img = None
 
-        velocity_estimate = self.kalman_filter_fusion(
-            photo_velocity,
-            gyro_velocity
-        )
+        for i in range(self.N):
 
-        self.write_final_result(
-            f"Velocità stimata ISS: {velocity_estimate:.3f} km/s"
-        )
+            if not self.iss_stable():
+                sleep(self.TIME_INTERVAL)
+                continue
+
+            img_name = f"image_{i}.jpg"
+            self.take_picture(img_name)
+
+            if prev_img is not None:
+
+                pixel_dist, img_width = self.pixel_shift(prev_img, img_name)
+
+                if pixel_dist is not None:
+                    distance_m = self.pixel_to_meters(pixel_dist, img_width)
+                    v = distance_m / self.TIME_INTERVAL
+
+                    if 500 < v < 10000:
+                        speeds.append(v)
+
+            prev_img = img_name
+            sleep(self.TIME_INTERVAL)
+
+        if speeds:
+            avg_speed = np.mean(speeds)
+            avg_speed_km = avg_speed / 1000
+            with open(self.results_file, "w") as f:
+                f.write(f"{avg_speed_km:.2f}")
 
 
 def main():
-    calc = ISS_SpeedCalculator()
-    calc.esegui()
+    calculator = ISSSpeedCalculator()
+    calculator.run()
 
 
 if __name__ == "__main__":
