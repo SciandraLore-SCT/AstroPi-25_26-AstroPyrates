@@ -140,4 +140,5 @@ This project is developed for educational purposes as part of the Astro Pi Chall
 
 ---
 
-Made with determination by AstroPyrates
+Made with determination by AstroPyrates.
+We hope you will like our project!
